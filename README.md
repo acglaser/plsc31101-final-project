@@ -1,16 +1,13 @@
-This is a template you can use for your final projects (as well other projects where you need to post replication code.) Fill in each section with information on your own project.
 
-## Short Description
 
-Give a short, 1-2 paragraph description of your project. Focus on the code, not the theoretical / substantive side of things. 
+## Accessing Public Data on the Google BigQuery API: 2020 Presidential Primary Ad Analysis
+
+This project is a tutorial on how to access public datasets through Google's BigQuery API using the R library bigrquery. In this tutorial, we will retrieve and analyze data on 2020 presidential primary advertising campaigns.
 
 ## Dependencies
 
-List what software your code depends on, as well as version numbers, like so:.
-
 1. R, 3.6.1
-
-In your scripts, includes commands that `require()` packages.
+2. Google BigQuery API
 
 ## Files
 
