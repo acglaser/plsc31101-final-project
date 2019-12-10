@@ -11,47 +11,33 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Brief substantive background / goal
 
-Google BigQuery is an enterprise cloud data warehouse that is specially suited for storing geospatial data and machine learning training data. It is also where Google hosts a number of public datasets of interest to political scientists, including Google's political advertising data, which is now available to the public.
+Google BigQuery is a cloud data warehouse that enables fast SQL queries using the processing power of Google's infrastructure. It is designed for commercial use, but it is also where Google hosts a number of public datasets that may be of interest to political scientists. One of these is a dataset containing comprehensive data on Google's political advertising clients across the world. This dataset includes ad-level and advertiser-level spending statistics, and geographic and demographic targeting data, for all political campaigns on the platform since the creation of the transparency report in the 2017-2018 U.S. midterms cycle.
 
-The goal of this tutorial is to show how to access the Google BigQuery API using the R library bigrquery. It will cover initializing access, creating a query, and a brief analysis of the structure of the 2020 political advertising dataset.
+The objective of this tutorial is to access this public dataset housed in Google BigQuery by making calls to its API, using the R package 'bigrquery'. The tutorial consists of two parts: setting up API access, and writing and making calls to the API.
 
-## Initializing access
+## Setting up BigQuery API access
 
-There are several steps. 
+There are multiple ways to enable access to the BigQuery API, but the first section of the tutorial will cover the "service account key" method, which is recommended in the BigQuery documentation.
 
-First, you must set up a BigQuery server account key. Unlike Twitter where authentication is completed using your Twitter user account, Google recommends creating a separate service account to establish your BigQuery credentials. 
+Here is an overview of the steps covered in the tutorial:
 
-This is done by navigating to the Google Cloud Console. You'll need to log in with your normal Google account. Once in the dashboard, you go to the Credentials tab, click on the Create Credentials dropdown, and select Service Account Key. From here you will follow the directions. When you complete the form, your browser will automatically download a .JSON file with your private key. It will also appear in your Credentials in the web UI.
+1. Accessing the BigQuery "sandbox"
+2. Creating a service account key in the web UI
+3. Installing 'bigrquery'
+4. Connecting 'bigrquery' to the BigQuery API
 
-Second, you must create a BigQuery project. Typically, this project is where you'd host your own data in the Google Cloud, and the Project ID is how you'd link your query to your data. For the case of accessing public data, you will use the Project ID as a value for the "billing" argument. Google sets rate limits at the account and the project level, so it needs to know which project to "bill" your data usage to. You do this in the console as well, clicking the Project icon in the menu bar.
+Note that this process is more complicated than simply setting up an OAuth connection to an existing user account, as we did with 'rtweets' and Twitter. The BigQuery API set-up also requires cross-referencing between several pieces of Google documentation and the 'bigrquery' CRAN guide. My tutorial aims to clearly and efficiently guide newcomers through this multi-step process.
 
-Third, you enable API access within your project. This is done using the WYSIWYG editor in the Google Cloud Console. 
+## Using 'bigrquery' 
 
-When all these steps are completed, you are ready to set up access in R.
+The second section of my tutorial begins by explaining the three different "layers" of the bigrquery package: the low-level layer, the DBI interface, and the dplyr interface. The goal of this introduction to 'bigrquery' is to familiarize users with the different types of functions they will be working with. This part of the tutorial also sheds light on how "plug n' play" packages like 'bigrquery' are typically structured in relation to a RESTful API.
 
-You must download and load the bigrquery library. Then, run the bq_auth() function and paste in the file name of your .JSON file or the key as it appears in the web UI. 
+Next, the tutorial introduces the dbConnect() function, which is used to establish a live connection to Google's public dataset of political advertising data, The tutorial explains the function's component arguments, and its role in enabling specific calls to the API.
 
-## How to query
-
-'bigrquery' has three layers of wrapping the UI. 
-
-The low-level API provides a thin wrapper over the underlying REST API. It requires you to write your own SQL queries and be familiar with the BigQuery API's idiosyncracies. These functions take the form bq_noun_verb(). 
-
-The DBI interface wraps the low-level API. You still need to write your own queries but the functions and classes are defined by DBI, which is a generic database interface in R. These functions usually begin with the prefix "db"
-
-Finally, the dplyr interface lets you treat BigQuery tables like in-house data. No SQL required. The actual package used here is dbplyr, which is dplyr but for remote databases.
-
-We will need dbConnect() to get started.
-
-Then you can use commands you're familiar with.
-
-An important aspect of dbplyr is that it's lazy. It will only pull data down from the cloud when you explicitly request it, and even then, it will do the bare minimum.
-
-For example, as you write your code, dbplyr is translating your code into SQL, but it will not submit the query to the API until you print the output. Even then, it will only show a preview. You need the function collect() to tell bigrquery to pull down all the requested data into your loal dataframe.
-
-## Troubleshooting
-
-
+Finally, we use 'bigrquery' dbplyr functions to craft a specific call to the API. The goal of the request is to import a dataframe of U.S. political advertisers on Google who have spent at least $1,000,000 on the platform. This task is used as an opportunity to explore how 'bigrquery' transforms dbplyr code into SQL, and better understand what it means for dbplyr to "lazily" execute queries by default. 
 
 ## Future work
+
+My initial plan was to access Facebook's Political Ads API as well, but Facebook requires users to first verify identity and country of residence. As part of the verification process, Facebook sends you a physical letter in the mail with an authorization code. I did not get the authorization letter in time to include Facebook Ads API in my project, but I hope to apply what I've learned using BigQuery to access the Facebook Ads API in the future!
+
 

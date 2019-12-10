@@ -1,0 +1,150 @@
+---
+title: "Accessing the BigQueryAPI: A Tutorial"
+author: "Audrey Glaser"
+date: "12/9/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+## What is BigQuery?
+
+Google BigQuery is a cloud data warehouse that enables fast SQL queries using the processing power of Google's infrastructure. It is designed for commercial use, but it is also where Google hosts a number of public datasets that may be of interest to political scientists. One of these is a dataset containing comprehensive data on Google's political advertising clients across the world. This dataset includes ad-level and advertiser-level spending statistics, and geographic and demographic targeting data, for all political campaigns on the platform since the creation of the transparency report in the 2017-2018 U.S. midterms cycle.
+
+The objective of this tutorial is to access this public dataset housed in Google BigQuery by making calls to its API, using the R package 'bigrquery'. The tutorial consists of two parts: setting up API access, and writing and making calls to the API.
+
+## Setting up BigQuery API access
+
+### Creating Credentials
+
+There are multiple ways to establish access to the BigQuery API, but this tutorial will cover the "service account key" method, which is recommended in the BigQuery documentation.
+
+The first step in this method is to set up a project in the Cloud Console. The Cloud Console is Google's web UI for its cloud products, including BigQuery. You will need to log in to your usual Google account to access the UI. 
+
+Once in the Console, click on the "Project" dropdown in the top-left corner of the page. You are limited to 12 projects if you are only using non-billable services. Projects are where you'd house data if you were using BigQuery for warehousing purposes. Even in our case of accessing Google's public datasets, we require a Project ID in order to make calls to the API. (This is because Google sets rate limits at the account and the project level, so it needs to know which project to attribute your data usage to.) Once you create a project, store the ID as a variable in R.
+
+```{r}
+project_ID <- "plsc-31101"
+#Replace 'plsc-31101' with your own project ID
+```
+
+Once you have created a project, navigate to APIs & Services > Credentials in the left-hand pane. Click on the "Create Credentials" dropdown menu when you reach the Credentials page. Select 'Service Account Key' in the menu. 
+
+From here, you will follow the directions on the form to create your key. When you complete the form, your browser will automatically download a .JSON file containing your private key. The key will also appear in your Credentials withiin the web UI.
+
+Now you are ready to enable access to the BigQuery API within your project. Go to the APIs & Service dashboard and search for the BigQuery API using the search bar. Follow the instructions to enable access. (You will be asked to use the service account credentials you just created.)
+
+When all these steps are completed, you will be directed to the BigQuery sandbox. The sandbox UI makes it possible to preview datasets and directly execute SQL queries in your web browser...if you weren't using R. But we are! Let's go set up BigQuery access in R.
+
+### Setting up 'bigrquery'
+
+First, install and load the 'bigrquery' package from CRAN. 
+
+```{r}
+install.packages(bigrquery)
+library(bigrquery)
+```
+
+Now, run the bq_auth() function. It will automatically request access to your Google user account. But remember that we need to authenticate with our new service account key, not our user account. To configure access with your server account key, go ahead and select your user account for now. Then reset your authentication as follows:
+
+```{r}
+bq_auth(email = NA)
+bq_auth(path = "your service account key")
+```
+
+Now you are ready to use bigrquery!
+
+## How to use 'bigrquery'
+
+### The three layers of 'bigrquery' 
+
+Before we get started, let's review how 'bigrquery' works. This overview will be helpful for navigating the package documentation and knowing all of your options.
+
+The 'bigrquery' package provides three "layers" of wrapping, or abstraction, around Google's RESTful BigQuery API. 
+
+The first layer, or the low-level API, provides a very thin wrapper over the underlying REST API. The low-level API layer is best for users who prefer to write their own SQL queries AND are familiar with the nuts and bolts of the BigQuery API. The low-level API functions in 'bigrquery' take the form bq_noun_verb(). 
+
+The second layer is the 'DBI interface' and wraps the low-level API. You still need to know SQL if you want to execute queries using only DBI functions, but these functions adhere to a common format used by many other "plug n' play" R packages. We'll use some DBI functions in this tutorial.
+
+Finally, the third layer is the dplyr interface, and it lets you treat BigQuery tables like in-house dataframes -- no SQL required. (The package will translate your code into queries.)
+
+### Create your connection to the API 
+
+We will need the DBI function dbConnect() to get started. dbConnect() takes several arguments when using bigrquery: a driver object, a project, a dataset, and a billing object. Note: because we are accessing a public dataset, we pass "bigquery-public-data" to the project argument, and the project ID we created to the "billing" argument.
+
+Make sure to store the output of this function as an object!
+
+```{r}
+con <- DBI::dbConnect(
+  bigquery(),
+  project = "bigquery-public-data",
+  dataset = "google_political_ads",
+  billing = project_ID
+)
+```
+
+Let's test our new connection by running a function that will list all the tables in the Google Political Ads dataset.
+
+```{r}
+DBI::dbListTables(con)
+```
+
+In the next section, we'll request data from the 'advertiser_stats' table. Let's find out the names of variables in that table.
+
+```{r}
+DBI::dbListFields(con, "advertiser_stats")
+```
+
+### Pull data!
+
+We're ready to start using some familiar-looking code!
+
+Remember, as you write your code using 'dbplyr' functions, 'bigrquery' is translating your code into a SQL query. But 'bigrquery' will not actually submit your request to the BigQuery API until you explicitly tell it to. 
+
+Let's look at an example.
+
+```{r}
+advertiser_stats <- tbl(con, "advertiser_stats")
+
+top_spenders <- advertiser_stats %>% 
+  filter(elections == "US-Federal",
+         spend_usd >= 1000000) %>%
+  arrange(desc(spend_usd))
+```
+
+At first glance, it looks like we just "downloaded" a table from BigQuery then shaped the table in R studio, doesn't it?
+
+But that process would require pulling down way, way too much data from the cloud. So that's not what 'bigrquery' is doing.
+
+Instead, 'bigrquery' writes the query that would produce the table we've specified in our code, and saves the query to the 'top_spenders' object, not the table itself. See for yourself.
+
+```{r}
+showquery(top_spenders)
+```
+
+So 'bigrquery' won't actually execute the query until we explicitly tell it to. But even when we do tell it to, by printing the object for example, the code will run as "lazily" as possible and only pulling a minimal preview of our table.
+
+```{r}
+top_spenders
+```
+
+We need to call the function collect() if we want 'bigquery' to pull down the entire table we've requested from the BigQuery API.
+
+```{r}
+top_spenders <- advertiser_stats %>% 
+  filter(elections == "US-Federal",
+         spend_usd >= 1000000) %>%
+  arrange(desc(spend_usd)) %>%
+  collect(n=100)
+
+#The collect() function will default to 10,000 rows of data unless you specify otherwise. 
+#Here, we've limited our request to a maximum of 100 rows.
+head(top_spenders)
+```
+
+Hurray! Now we have our requested data: a table of all-time top spenders from U.S. federal election campaigns on Google's advertising platform.
+
+Challenge: Download weekly spending data for 2020 presidential contenders starting 1/1/2019 and ending 12/1/2019. Plot candidate spending over time.
+
