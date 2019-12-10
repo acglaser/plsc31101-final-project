@@ -142,6 +142,15 @@ top_spenders <- advertiser_stats %>%
 #The collect() function will default to 10,000 rows of data unless you specify otherwise. 
 #Here, we've limited our request to a maximum of 100 rows.
 head(top_spenders)
+plot <- top_spenders[c(1:10),] %>% ggplot(aes(x=reorder(advertiser_name, spend_usd), y=spend_usd, fill=advertiser_name)) +
+  geom_bar(stat="identity")+
+  theme(axis.text.x=element_text(size = 7, angle=45, hjust=1)) +
+  theme(legend.position = "none") +
+  ylab("Total Spend in USD (Millions)") +
+  xlab("") +
+  ggtitle("Top-Spending Google Advertisers in U.S. Elections")
+
+ggsave(filename="top_spenders.png", plot = plot)
 ```
 
 Hurray! Now we have our requested data: a table of all-time top spenders from U.S. federal election campaigns on Google's advertising platform.
