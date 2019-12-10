@@ -15,7 +15,7 @@ This project is a tutorial on how to access public datasets through Google's Big
 
 1. Narrative.Rmd: Provides a narrative of the project, main challenges, solutions, and results.
 2. Narrative.pdf: A knitted pdf of 00_Narrative.Rmd. 
-3. PLSC 31101 Final Project Lightning Talk.pdf: Your lightning talk slides, in whatever format you prefer.
+3. Lightning_Talk.pdf: Your lightning talk slides, in whatever format you prefer.
 
 #### Tutorial Doc/
 1. Tutorial.Rmd: Provides step-by-step tutorial with R code chunks
